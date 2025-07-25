@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+from dotenv import load_dotenv
 
 from .tasks import start_worker_threads
 from .blueprints.main import main_bp
@@ -12,6 +13,7 @@ from .blueprints.api import api_bp
 def create_app():
     """创建并配置 Flask 应用实例。"""
     app = Flask(__name__, instance_relative_config=True)
+    load_dotenv()
 
     # --- 应用配置 ---
     # 确保实例文件夹存在
@@ -21,8 +23,8 @@ def create_app():
         pass
 
     app.config.from_mapping(
-        SECRET_KEY='supersecretkey', # 在生产环境中应使用更安全的值
-        UPLOAD_FOLDER=os.path.join(app.instance_path, 'uploads')
+        SECRET_KEY=os.getenv('SECRET_KEY') or 'a-secure-default-secret-key-for-development',
+        UPLOAD_FOLDER=os.getenv('UPLOAD_FOLDER') or os.path.join(app.instance_path, 'uploads')
     )
 
     # 确保上传文件夹存在

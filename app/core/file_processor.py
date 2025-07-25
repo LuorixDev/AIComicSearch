@@ -14,7 +14,10 @@ from ..services.vision_service import analyze_image
 from ..services.openai_service import summarize_text, get_embedding
 from ..services.chroma_service import add_embedding
 
-DATA_BASE_PATH = './data/comicdb'
+DATA_BASE_PATH = os.getenv('DATA_BASE_PATH', './data/comicdb')
+TEMP_FOLDER = os.getenv('TEMP_FOLDER', './tmp')
+SUPPORTED_FORMATS = tuple(os.getenv('SUPPORTED_FORMATS', '.png,.jpg,.jpeg,.webp,.bmp,.gif').split(','))
+COVER_NAMES = tuple(os.getenv('COVER_NAMES', 'cover,folder').split(','))
 
 def natural_sort_key(s):
     """自然排序键函数，用于正确排序包含数字的字符串。"""
@@ -89,7 +92,7 @@ def _process_zip_file(task):
     
     update_task_status(task_id, {'status': '正在处理', 'details': '开始解压文件...'})
 
-    temp_extract_path = os.path.join('./tmp', task_id)
+    temp_extract_path = os.path.join(TEMP_FOLDER, task_id)
 
     try:
         if os.path.exists(temp_extract_path): shutil.rmtree(temp_extract_path)
@@ -144,15 +147,13 @@ def _process_zip_file(task):
         # 更新封面（仅当不存在时）
         cover_path = os.path.join(comic_path, 'cover.png')
         if not os.path.exists(cover_path):
-            supported_formats = ('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif')
-            cover_names = ('cover', 'folder')
             search_paths = [comic_base_path] + [os.path.join(comic_base_path, d) for d in os.listdir(comic_base_path) if os.path.isdir(os.path.join(comic_base_path, d))]
             
             cover_found = False
             for search_dir in search_paths:
                 if cover_found: break
                 for item in os.listdir(search_dir):
-                    if any(name in item.lower() for name in cover_names) and item.lower().endswith(supported_formats):
+                    if any(name in item.lower() for name in COVER_NAMES) and item.lower().endswith(SUPPORTED_FORMATS):
                         try:
                             with Image.open(os.path.join(search_dir, item)) as img:
                                 img.convert('RGB').save(cover_path, 'PNG')
@@ -163,14 +164,14 @@ def _process_zip_file(task):
                             logger.error(f"[{task_id}] 处理封面图 {item} 时出错: {e}")
             if not cover_found: logger.warning(f"[{task_id}] 未找到封面图。")
 
-        total_images = sum(len(sorted([f for f in os.listdir(os.path.join(comic_base_path, c)) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif')) and not any(cn in f.lower() for cn in ('cover', 'folder'))], key=natural_sort_key)) for c in chapters)
+        total_images = sum(len(sorted([f for f in os.listdir(os.path.join(comic_base_path, c)) if f.lower().endswith(SUPPORTED_FORMATS) and not any(cn in f.lower() for cn in COVER_NAMES)], key=natural_sort_key)) for c in chapters)
         if total_images == 0: raise ValueError("漫画中未找到有效图片。")
 
         processed_images = 0
         total_chapters = len(chapters)
         for i, chapter_name in enumerate(chapters):
             chapter_path = os.path.join(comic_base_path, chapter_name)
-            image_files = sorted([f for f in os.listdir(chapter_path) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif')) and not any(cn in f.lower() for cn in ('cover', 'folder'))], key=natural_sort_key)
+            image_files = sorted([f for f in os.listdir(chapter_path) if f.lower().endswith(SUPPORTED_FORMATS) and not any(cn in f.lower() for cn in COVER_NAMES)], key=natural_sort_key)
             
             if not image_files:
                 logger.warning(f"[{task_id}] 章节 '{chapter_name}' 中未找到有效图片，跳过。")

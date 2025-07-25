@@ -4,7 +4,7 @@ import chromadb
 from ..utils.logger import logger
 
 # --- 路径和数据库配置 ---
-DATA_BASE_PATH = './data/comicdb'
+DATA_BASE_PATH = os.getenv('DATA_BASE_PATH', './data/comicdb')
 CHROMA_PATH = os.path.join(DATA_BASE_PATH, 'chroma')
 os.makedirs(DATA_BASE_PATH, exist_ok=True)
 os.makedirs(CHROMA_PATH, exist_ok=True)

@@ -14,4 +14,6 @@ if not validate_data_consistency():
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    debug_mode = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    port = int(os.getenv('FLASK_RUN_PORT', 5001))
+    app.run(debug=debug_mode, port=port)

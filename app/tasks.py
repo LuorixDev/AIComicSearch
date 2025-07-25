@@ -1,5 +1,6 @@
 import threading
 import time
+import os
 from collections import deque
 
 from .utils.logger import logger
@@ -9,7 +10,7 @@ processing_queue = deque()
 processing_statuses = {}
 queue_lock = threading.Lock()
 status_lock = threading.Lock() # 为状态更新添加专用的锁
-MAX_WORKERS = 4 # 定义最大并发任务数
+MAX_WORKERS = int(os.getenv('MAX_WORKERS', 4)) # 定义最大并发任务数
 
 def add_task(task_data, process_func):
     """将任务添加到队列中，并初始化其状态。"""
