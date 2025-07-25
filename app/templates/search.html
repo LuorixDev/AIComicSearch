@@ -32,7 +32,7 @@
                                         {% for chapter in result.matched_chapters %}
                                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                                 第 {{ chapter.chapter }} 章
-                                                <span class="badge badge-info badge-pill">相似度: {{ "%.2f"|format(chapter.similarity * 100) }}%</span>
+                                                <span class="badge bg-info rounded-pill">相似度: {{ "%.2f"|format(chapter.similarity * 100) }}%</span>
                                             </li>
                                         {% endfor %}
                                     </ul>

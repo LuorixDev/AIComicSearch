@@ -36,6 +36,9 @@
 <td>{{ comic.chapters }}</td>
 <td><small class="text-muted">{{ comic.hash }}</small></td>
 <td class="text-end">
+    <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="showRenameModal('{{ comic.name }}', '{{ comic.hash }}')">
+        <i class="bi bi-pencil"></i> 修改名称
+    </button>
     <form action="{{ url_for('delete_comic_route', comic_hash=comic.hash) }}" method="POST" class="d-inline" onsubmit="return confirm('确定要删除这部漫画吗？此操作不可逆！');">
         <button type="submit" class="btn btn-sm btn-outline-danger">
             <i class="bi bi-trash"></i> 删除整部漫画
@@ -53,4 +56,41 @@
     </div>
     {% endif %}
 
+<!-- Rename Comic Modal -->
+<div class="modal fade" id="renameComicModal" tabindex="-1" aria-labelledby="renameComicModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="renameComicForm" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="renameComicModalLabel">修改漫画名称</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>当前名称: <strong id="currentComicName"></strong></p>
+                    <div class="mb-3">
+                        <label for="new_comic_name" class="form-label">新的漫画名称</label>
+                        <input type="text" class="form-control" id="new_comic_name" name="new_name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存更改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showRenameModal(comicName, comicHash) {
+    const modal = new bootstrap.Modal(document.getElementById('renameComicModal'));
+    document.getElementById('currentComicName').textContent = comicName;
+    const form = document.getElementById('renameComicForm');
+    form.action = `/rename_comic/${comicHash}`;
+    form.querySelector('#new_comic_name').value = comicName;
+    modal.show();
+}
+</script>
 {% endblock %}

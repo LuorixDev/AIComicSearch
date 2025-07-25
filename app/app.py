@@ -52,7 +52,7 @@ def upload_file():
             return redirect(request.url)
         # 如果文件存在且扩展名合法
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)  # 获取安全的文件名
+            filename = file.filename  # 获取安全的文件名
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)  # 保存文件
             
@@ -102,6 +102,21 @@ def manage_data():
 def delete_comic_route(comic_hash):
     """删除指定漫画的路由。"""
     success, message = delete_comic(comic_hash)
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    return redirect(url_for('manage_data'))
+
+@app.route('/rename_comic/<comic_hash>', methods=['POST'])
+def rename_comic_route(comic_hash):
+    """重命名指定漫画的路由。"""
+    new_name = request.form.get('new_name')
+    if not new_name:
+        flash('新漫画名不能为空', 'error')
+        return redirect(url_for('manage_data'))
+
+    success, message = update_comic_info(comic_hash, {'name': new_name})
     if success:
         flash(message, 'success')
     else:
