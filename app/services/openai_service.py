@@ -4,6 +4,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 from ..utils.logger import logger
+from ..tasks import get_or_create_stream_buffer
 
 # --- 初始化 ---
 load_dotenv()
@@ -21,13 +22,16 @@ def get_embedding(text, model=EMBEDDING_MODEL):
     text = text.replace("\n", " ")
     return client.embeddings.create(input=[text], model=model).data[0].embedding
 
-def summarize_text(text, task_id, chapter_name, processing_statuses, model=SUMMARY_MODEL):
+def summarize_text(text, task_id, chapter_name, model=SUMMARY_MODEL):
     """以流式方式为文本生成摘要，并将日志写入特定的缓冲区。"""
     summary_log_key = f"summary_{chapter_name}"
     try:
-        if 'stream_buffers' not in processing_statuses[task_id]:
-            processing_statuses[task_id]['stream_buffers'] = {}
-        processing_statuses[task_id]['stream_buffers'][summary_log_key] = deque()
+        buffer = get_or_create_stream_buffer(task_id, summary_log_key)
+        if buffer is None:
+            error_message = f"无法为 {summary_log_key} 获取流缓冲区。"
+            logger.error(f"[{task_id}] {error_message}")
+            yield f"摘要生成失败: {error_message}"
+            return
 
         stream = client.chat.completions.create(
             model=model,
@@ -38,8 +42,6 @@ def summarize_text(text, task_id, chapter_name, processing_statuses, model=SUMMA
             max_tokens=16384,
             stream=True,
         )
-        
-        buffer = processing_statuses[task_id]['stream_buffers'][summary_log_key]
         buffer.append("[摘要开始]\n")
         
         summary_content = []
@@ -55,6 +57,8 @@ def summarize_text(text, task_id, chapter_name, processing_statuses, model=SUMMA
     except Exception as e:
         error_message = f"生成摘要时出错: {e}"
         logger.error(f"[{task_id}] {error_message}")
-        if 'stream_buffers' in processing_statuses[task_id] and summary_log_key in processing_statuses[task_id]['stream_buffers']:
-            processing_statuses[task_id]['stream_buffers'][summary_log_key].append(error_message)
+        # 尝试获取缓冲区并记录错误
+        buffer = get_or_create_stream_buffer(task_id, summary_log_key)
+        if buffer:
+            buffer.append(error_message)
         yield "摘要生成失败。"

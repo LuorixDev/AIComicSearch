@@ -8,10 +8,11 @@ import time
 from PIL import Image
 from collections import deque
 
-from app.utils.logger import logger
-from app.services.vision_service import analyze_image
-from app.services.openai_service import summarize_text, get_embedding
-from app.services.chroma_service import add_embedding
+from ..utils.logger import logger
+from ..tasks import update_task_status, get_or_create_stream_buffer
+from ..services.vision_service import analyze_image
+from ..services.openai_service import summarize_text, get_embedding
+from ..services.chroma_service import add_embedding
 
 DATA_BASE_PATH = './data/comicdb'
 
@@ -19,36 +20,44 @@ def natural_sort_key(s):
     """自然排序键函数，用于正确排序包含数字的字符串。"""
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
 
-def _analyze_image_task(task_id, chapter_name, img_file, img_path, processing_statuses):
+def _analyze_image_task(task_id, chapter_name, img_file, img_path):
     """封装单个图片分析任务，使其可在线程池中运行。"""
     log_key = f"{chapter_name}_{os.path.splitext(img_file)[0]}"
     
-    if 'stream_buffers' not in processing_statuses[task_id]:
-        processing_statuses[task_id]['stream_buffers'] = {}
-    processing_statuses[task_id]['stream_buffers'][log_key] = deque()
-    
-    buffer = processing_statuses[task_id]['stream_buffers'][log_key]
-    
+    buffer = get_or_create_stream_buffer(task_id, log_key)
+    if buffer is None:
+        logger.error(f"[{task_id}] 无法为 {log_key} 获取流缓冲区。")
+        return img_file, None
+
     logger.info(f"[{task_id}] [图片分析中] 开始分析图片 {img_file}...")
     buffer.append(f"[开始分析图片: {img_file}]\n")
     
     description_chunks = []
     try:
-        # 直接传递图片路径给 analyze_image
+        # 直接传递图片路径给 analyze_image，它现在内置了重试逻辑
         for chunk in analyze_image(img_path):
             buffer.append(chunk)
             description_chunks.append(chunk)
         
         description = "".join(description_chunks)
+
+        # 检查是否有错误信息从 analyze_image 返回
+        if description.startswith("错误："):
+            logger.error(f"[{task_id}] {description}")
+            buffer.append(f"\n[错误: {description}]\n")
+            buffer.append({'type': 'stream_end', 'stream_id': log_key, 'error': True})
+            return img_file, None
+
         buffer.append(f"\n[图片分析结束: {img_file}]\n\n")
         buffer.append({'type': 'stream_end', 'stream_id': log_key})
         
         logger.info(f"[{task_id}] [图片分析完成] 图片 {img_file} 分析完毕。")
         return img_file, description
+    
     except Exception as e:
-        error_message = f"分析图片 {img_file} 时发生严重错误: {e}"
+        error_message = f"处理图片 {img_file} 时发生意外错误: {e}"
         logger.error(f"[{task_id}] {error_message}", exc_info=True)
-        buffer.append(f"\n[错误: {error_message}]\n")
+        buffer.append(f"\n[严重错误: {error_message}]\n")
         buffer.append({'type': 'stream_end', 'stream_id': log_key, 'error': True})
         return img_file, None
 
@@ -71,14 +80,14 @@ def _save_comic_index(index):
     with open(index_path, 'w', encoding='utf-8') as f:
         json.dump(index, f, ensure_ascii=False, indent=4)
 
-def _process_zip_file(task, processing_statuses):
+def _process_zip_file(task):
     """实际处理单个 ZIP 漫画文件的内部函数。"""
     task_id = task['task_id']
     filepath = task['filepath']
     comic_name = task['comic_name']
     file_content_hash = task['file_content_hash']
     
-    processing_statuses[task_id].update({'status': '正在处理', 'details': '开始解压文件...'})
+    update_task_status(task_id, {'status': '正在处理', 'details': '开始解压文件...'})
 
     temp_extract_path = os.path.join('./tmp', task_id)
 
@@ -203,7 +212,7 @@ def _process_zip_file(task, processing_statuses):
             logger.info(f"[{task_id}] 章节 '{chapter_name}' 的所有图片已移动到永久存储位置。")
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                future_to_img = {executor.submit(_analyze_image_task, task_id, chapter_name, img_file, os.path.join(chapter_pic_storage_path, img_file), processing_statuses): img_file for img_file in image_files}
+                future_to_img = {executor.submit(_analyze_image_task, task_id, chapter_name, img_file, os.path.join(chapter_pic_storage_path, img_file)): img_file for img_file in image_files}
 
                 for future in concurrent.futures.as_completed(future_to_img):
                     img_file = future_to_img[future]
@@ -218,7 +227,7 @@ def _process_zip_file(task, processing_statuses):
                         processed_images += 1
                         progress = (processed_images / total_images) * 95
                         details = f'章节 {chapter_name} ({i+1}/{total_chapters}): 分析图片 {processed_images}/{total_images}'
-                        processing_statuses[task_id].update({'status': 'AI处理中', 'progress': progress, 'details': details})
+                        update_task_status(task_id, {'status': 'AI处理中', 'progress': progress, 'details': details})
 
                     except Exception as exc:
                         logger.error(f'[{task_id}] 图片 {img_file} 生成时发生错误: {exc}', exc_info=True)
@@ -227,11 +236,13 @@ def _process_zip_file(task, processing_statuses):
 
             if page_descriptions:
                 details = f'正在为章节 {chapter_name} 生成摘要...'
-                processing_statuses[task_id].update({'details': details})
+                update_task_status(task_id, {'details': details})
                 logger.info(f"[{task_id}] {details}")
                 
                 full_description_text = "\n\n".join(page_descriptions)
-                summary_chunks = list(summarize_text(full_description_text, task_id, chapter_name, processing_statuses))
+                # 注意：summarize_text 也需要修改以使用新的状态更新机制
+                # 目前假设 summarize_text 内部也已更新或不直接修改状态
+                summary_chunks = list(summarize_text(full_description_text, task_id, chapter_name))
                 chapter_summary = "".join(summary_chunks)
                 
                 with open(os.path.join(chapter_summary_path, 'summary.txt'), 'w', encoding='utf-8') as f:
@@ -242,12 +253,12 @@ def _process_zip_file(task, processing_statuses):
                 embedding = get_embedding(chapter_summary)
                 add_embedding(comic_hash, chapter_name, chapter_summary, embedding)
 
-        processing_statuses[task_id].update({'status': '完成', 'progress': 100, 'details': '所有章节处理完毕。', 'end_time': time.time()})
+        update_task_status(task_id, {'status': '完成', 'progress': 100, 'details': '所有章节处理完毕。', 'end_time': time.time()})
         logger.info(f"[{task_id}] 漫画 '{comic_name}' 处理完成。")
 
     except Exception as e:
         logger.error(f"[{task_id}] 处理漫画时发生严重错误: {e}", exc_info=True)
-        processing_statuses[task_id].update({'status': '失败', 'details': str(e), 'end_time': time.time()})
+        update_task_status(task_id, {'status': '失败', 'details': str(e), 'end_time': time.time()})
     finally:
         if os.path.exists(temp_extract_path):
             shutil.rmtree(temp_extract_path)

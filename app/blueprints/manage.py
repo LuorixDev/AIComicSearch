@@ -85,10 +85,10 @@ def rename_chapter_route(comic_hash, old_name):
 
     success, message = rename_chapter(comic_hash, old_name, new_name)
     if success:
-        flash(message, 'success')
+        #flash(message, 'success')
         return redirect(url_for('manage.comic_info', comic_hash=comic_hash, chapter=new_name))
     else:
-        flash(message, 'error')
+        # flash(message, 'error')
         return redirect(url_for('manage.comic_info', comic_hash=comic_hash, chapter=old_name))
 
 @manage_bp.route('/comic_image/<comic_hash>/<path:chapter_name>/<path:image_name>')

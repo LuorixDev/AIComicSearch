@@ -11,7 +11,7 @@
         <h1>{{ comic.name }}</h1>
         <p class="text-muted">Hash: {{ comic.hash }}</p>
     </div>
-    <img src="{{ url_for('main.comic_cover', comic_hash=comic.hash) }}" alt="封面" class="img-fluid rounded" style="max-width: 150px; max-height: 200px; object-fit: cover;">
+    <img src="{{ url_for('main.comic_cover', comic_hash=comic.hash) }}" alt="封面" class="img-fluid rounded" style="max-width: 225px; max-height: 300px; object-fit: cover;">
 </div>
 
 <div class="row">
@@ -46,45 +46,55 @@
     <!-- Chapter Details -->
     <div class="col-md-8">
         {% if selected_chapter_name %}
-            {% set selected_chapter = comic.chapters | selectattr('name', 'equalto', selected_chapter_name) | first %}
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">章节详情: {{ selected_chapter.name }}</h5>
-                </div>
-                <div class="card-body">
-                    <p><strong>章节摘要:</strong></p>
-                    <p class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ selected_chapter.summary or '无摘要信息。' }}</p>
-                    
-                    <hr>
+            {% set matching_chapters = comic.chapters | selectattr('name', 'equalto', selected_chapter_name) | list %}
+            {% if matching_chapters %}
+                {% set selected_chapter = matching_chapters[0] %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">章节详情: {{ selected_chapter.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>章节摘要:</strong></p>
+                        <p class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ selected_chapter.summary or '无摘要信息。' }}</p>
+                        
+                        <hr>
 
-                    <h6 class="mt-4">页面详情</h6>
-                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
-                        <table class="table table-bordered table-hover">
-                            <thead class="table-light sticky-top">
-                                <tr>
-                                    <th style="width: 30%;">图片</th>
-                                    <th>图片描述</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for page in selected_chapter.pages %}
-                                <tr>
-                                    <td>
-                                        <img src="{{ url_for('manage.comic_image_route', comic_hash=comic.hash, chapter_name=selected_chapter.name, image_name=page.image) }}" 
-                                             class="img-fluid rounded" alt="{{ page.image }}">
-                                    </td>
-                                    <td style="white-space: pre-wrap; vertical-align: middle;">{{ page.description }}</td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="2" class="text-center">没有找到页面详情。</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                        <h6 class="mt-4">页面详情</h6>
+                        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 50%;">图片</th>
+                                        <th>图片描述</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for page in selected_chapter.pages %}
+                                    <tr>
+                                        <td>
+                                            <img src="{{ url_for('manage.comic_image_route', comic_hash=comic.hash, chapter_name=selected_chapter.name, image_name=page.image) }}" 
+                                                 class="img-fluid rounded" alt="{{ page.image }}">
+                                        </td>
+                                        <td style="white-space: pre-wrap; vertical-align: middle;">{{ page.description }}</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="2" class="text-center">没有找到页面详情。</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-            </div>
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-center">
+                        <p class="text-danger">错误：找不到名为 “{{ selected_chapter_name }}” 的章节。</p>
+                        <p class="text-muted">它可能已被删除或重命名。请从左侧列表中选择一个有效的章节。</p>
+                    </div>
+                </div>
+            {% endif %}
         {% else %}
             <div class="card">
                 <div class="card-body text-center">
