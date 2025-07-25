@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}上传漫画{% endblock %}
+
+{% block content %}
+    <h1>上传新漫画</h1>
+    <p>选择一个 PDF 或 ZIP 文件进行上传。文件将被处理并添加到搜索索引中。</p>
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="file">选择文件</label>
+            <input type="file" class="form-control-file" name="file" id="file" accept=".pdf,.zip">
+        </div>
+        <button type="submit" class="btn btn-primary">上传</button>
+    </form>
+{% endblock %}

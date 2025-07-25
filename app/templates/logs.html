@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}处理日志{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>处理日志</h1>
+        <a href="{{ url_for('logs') }}" class="btn btn-sm btn-secondary">刷新</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <p class="card-text">
+                这里实时显示后台处理任务的日志。日志文件路径：<code>logs/processing.log</code>
+            </p>
+        </div>
+    </div>
+
+    <pre class="mt-4" style="background-color: #212529; color: #f8f9fa; padding: 1rem; border-radius: .5rem; max-height: 600px; overflow-y: auto;"><code>{{ log_content }}</code></pre>
+{% endblock %}
