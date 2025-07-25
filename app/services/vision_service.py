@@ -3,7 +3,7 @@ import os
 import base64  # 用于将图片编码为 Base64 字符串
 from openai import OpenAI  # OpenAI 官方库
 from dotenv import load_dotenv  # 用于从 .env 文件加载环境变量
-from logger_setup import logger
+from app.utils.logger import logger
 
 # 加载 .env 文件中的环境变量
 load_dotenv()

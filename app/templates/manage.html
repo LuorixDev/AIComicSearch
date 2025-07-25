@@ -32,14 +32,14 @@
                 {% for comic in comics %}
                 <tr>
                     <th scope="row">{{ loop.index }}</th>
-<td><a href="{{ url_for('comic_info', comic_hash=comic.hash) }}"><strong>{{ comic.name }}</strong></a></td>
+<td><a href="{{ url_for('manage.comic_info', comic_hash=comic.hash) }}"><strong>{{ comic.name }}</strong></a></td>
 <td>{{ comic.chapters }}</td>
 <td><small class="text-muted">{{ comic.hash }}</small></td>
 <td class="text-end">
     <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="showRenameModal('{{ comic.name }}', '{{ comic.hash }}')">
         <i class="bi bi-pencil"></i> 修改名称
     </button>
-    <form action="{{ url_for('delete_comic_route', comic_hash=comic.hash) }}" method="POST" class="d-inline" onsubmit="return confirm('确定要删除这部漫画吗？此操作不可逆！');">
+    <form action="{{ url_for('manage.delete_comic_route', comic_hash=comic.hash) }}" method="POST" class="d-inline" onsubmit="return confirm('确定要删除这部漫画吗？此操作不可逆！');">
         <button type="submit" class="btn btn-sm btn-outline-danger">
             <i class="bi bi-trash"></i> 删除整部漫画
         </button>
@@ -88,7 +88,7 @@ function showRenameModal(comicName, comicHash) {
     const modal = new bootstrap.Modal(document.getElementById('renameComicModal'));
     document.getElementById('currentComicName').textContent = comicName;
     const form = document.getElementById('renameComicForm');
-    form.action = `/rename_comic/${comicHash}`;
+    form.action = `{{ url_for('manage.rename_comic_route', comic_hash='REPLACE_HASH') }}`.replace('REPLACE_HASH', comicHash);
     form.querySelector('#new_comic_name').value = comicName;
     modal.show();
 }

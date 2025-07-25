@@ -6,15 +6,14 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>文件处理队列</h1>
     <div>
-        <a href="{{ url_for('processing_status') }}" class="btn btn-primary me-2">
+        <a href="{{ url_for('api.processing_status') }}" class="btn btn-primary me-2">
             <i class="bi bi-arrow-clockwise"></i> 刷新
         </a>
-        <a href="{{ url_for('logs') }}" class="btn btn-info">
+        <a href="{{ url_for('main.logs') }}" class="btn btn-info">
             <i class="bi bi-card-text"></i> 查看实时日志
         </a>
     </div>
 </div>
-<p>这里显示了所有已上传漫画的处理状态。页面不会自动刷新，请手动点击刷新按钮查看最新状态。</p>
 
 {% if statuses %}
 <div class="table-responsive">

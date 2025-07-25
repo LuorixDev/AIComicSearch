@@ -7,7 +7,7 @@
         <h1 class="display-4">AI 漫画搜索</h1>
         <p class="lead">输入您想搜索的漫画内容、场景或对话，让 AI 帮您找到对应的漫画。</p>
         <hr class="my-4">
-        <form action="{{ url_for('search') }}" method="get">
+        <form action="{{ url_for('search.search') }}" method="get">
             <div class="input-group mb-3">
                 <input type="text" class="form-control" name="query" placeholder="例如：一个戴草帽的男孩出海冒险" value="{{ query }}">
                 <div class="input-group-append">

@@ -5,13 +5,13 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <a href="{{ url_for('manage_data') }}" class="btn btn-outline-secondary mb-3">
+        <a href="{{ url_for('manage.manage_data') }}" class="btn btn-outline-secondary mb-3">
             <i class="bi bi-arrow-left"></i> 返回管理页面
         </a>
         <h1>{{ comic.name }}</h1>
         <p class="text-muted">Hash: {{ comic.hash }}</p>
     </div>
-    <img src="{{ url_for('comic_cover', comic_hash=comic.hash) }}" alt="封面" class="img-fluid rounded" style="max-width: 150px; max-height: 200px; object-fit: cover;">
+    <img src="{{ url_for('main.comic_cover', comic_hash=comic.hash) }}" alt="封面" class="img-fluid rounded" style="max-width: 150px; max-height: 200px; object-fit: cover;">
 </div>
 
 <div class="row">
@@ -23,7 +23,7 @@
             </div>
             <div class="list-group list-group-flush">
                 {% for chapter in comic.chapters %}
-                <a href="{{ url_for('comic_info', comic_hash=comic.hash, chapter=chapter.name) }}" 
+                <a href="{{ url_for('manage.comic_info', comic_hash=comic.hash, chapter=chapter.name) }}" 
                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {% if chapter.name == selected_chapter_name %}active{% endif %}">
                     {{ chapter.name }}
                     <div class="btn-group">
@@ -31,7 +31,7 @@
                                 onclick="event.preventDefault(); showRenameModal('{{ chapter.name }}')">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <form action="{{ url_for('delete_chapter_route', comic_hash=comic.hash, chapter_name=chapter.name) }}" method="POST" class="d-inline" onsubmit="return confirm('确定要删除章节 “{{ chapter.name }}” 吗？');">
+                        <form action="{{ url_for('manage.delete_chapter_route', comic_hash=comic.hash, chapter_name=chapter.name) }}" method="POST" class="d-inline" onsubmit="return confirm('确定要删除章节 “{{ chapter.name }}” 吗？');">
                             <button type="submit" class="btn btn-sm {% if chapter.name == selected_chapter_name %}btn-danger{% else %}btn-outline-danger{% endif %}">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -70,7 +70,7 @@
                                 {% for page in selected_chapter.pages %}
                                 <tr>
                                     <td>
-                                        <img src="{{ url_for('comic_image_route', comic_hash=comic.hash, chapter_name=selected_chapter.name, image_name=page.image) }}" 
+                                        <img src="{{ url_for('manage.comic_image_route', comic_hash=comic.hash, chapter_name=selected_chapter.name, image_name=page.image) }}" 
                                              class="img-fluid rounded" alt="{{ page.image }}">
                                     </td>
                                     <td style="white-space: pre-wrap; vertical-align: middle;">{{ page.description }}</td>
@@ -128,7 +128,8 @@ function showRenameModal(chapterName) {
     const modal = new bootstrap.Modal(document.getElementById('renameModal'));
     document.getElementById('currentChapterName').textContent = chapterName;
     const form = document.getElementById('renameForm');
-    form.action = `/rename_chapter/{{ comic.hash }}/${encodeURIComponent(chapterName)}`;
+    const urlTemplate = `{{ url_for('manage.rename_chapter_route', comic_hash=comic.hash, old_name='REPLACE_NAME') }}`;
+    form.action = urlTemplate.replace('REPLACE_NAME', encodeURIComponent(chapterName));
     form.querySelector('#new_name').value = chapterName;
     modal.show();
 }

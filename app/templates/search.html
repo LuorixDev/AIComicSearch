@@ -4,7 +4,7 @@
 
 {% block content %}
     <h1>搜索漫画</h1>
-    <form action="{{ url_for('search') }}" method="get">
+    <form action="{{ url_for('search.search') }}" method="get">
         <div class="input-group mb-3">
             <input type="text" class="form-control" name="query" placeholder="例如：一个戴草帽的男孩出海冒险" value="{{ query }}">
             <div class="input-group-append">
@@ -22,7 +22,7 @@
                         <div class="card">
                             <div class="card-body row">
                                 <div class="col-md-2">
-                                    <img src="{{ url_for('comic_cover', comic_hash=result.hash) }}" class="img-fluid" alt="{{ result.title }} Cover" style="max-height: 200px; object-fit: cover;">
+                                    <img src="{{ url_for('main.comic_cover', comic_hash=result.hash) }}" class="img-fluid" alt="{{ result.title }} Cover" style="max-height: 200px; object-fit: cover;">
                                 </div>
                                 <div class="col-md-10">
                                     <h5 class="card-title">{{ result.title }}</h5>
